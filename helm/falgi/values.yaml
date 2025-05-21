@@ -1,0 +1,11 @@
+replicaCount: 2
+image:
+  repository: nginx
+  tag: latest
+containerPort: 80
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 80
+  nodePort: 30001
