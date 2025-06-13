@@ -3,14 +3,14 @@ provider "aws" {
 }
 
 resource "aws_vpc" "myvpc" {
-  cidr_block = "10.0.0.0/16" #Create the ip range used in vpc
+  cidr_block = "10.0.0.0/16"
 }
 
 resource "aws_subnet" "public_subnet" {
   vpc_id = aws_vpc.myvpc.id
-  cidr_block = "10.0.1.0/24"  #Create the ip range used in this subnet
-  availability_zone = "ap-southeast-1a" #The AZ used in this subnet
-  map_public_ip_on_launch = true #Give public ip for this subnet
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "ap-southeast-1a"
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "Public Subnet"
@@ -83,4 +83,59 @@ resource "aws_route_table" "private_rt" {
 resource "aws_route_table_association" "private_rt_assoc" {
   subnet_id = aws_subnet.private_subnet.id
   route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_security_group" "staging-sg" {
+  vpc_id = aws_vpc.myvpc.id
+  name = "staging-sg"
+  description = "Ini adalah sg untuk staging"
+
+  ingress {
+    description = "Port untuk connect via ssh"
+    from_port = "22"
+    to_port = "22"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  ingress {
+    description = "Port untuk connect via http"
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "Port untuk connect via https"
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_iam_role" "eks_cluster_role" {
+  name = "eks_cluster_role"
+  
+  assume_role_policy = jsonencode( {
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "eks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+     }]  
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+  role = aws_iam_role.eks_cluster_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
